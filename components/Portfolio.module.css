@@ -471,7 +471,7 @@
 .slideshowTrack {
   display: flex;
   gap: 40px;
-  animation: slide 25s linear infinite;
+  animation: slideBackAndForth 50s linear infinite;
   will-change: transform;
 }
 
@@ -503,12 +503,15 @@
   display: block;
 }
 
-@keyframes slide {
+@keyframes slideBackAndForth {
   0% {
     transform: translateX(0);
   }
-  100% {
+  50% {
     transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
   }
 }
 

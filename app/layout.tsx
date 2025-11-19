@@ -15,7 +15,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Irys Portfolio',
+  title: 'phos',
   description: 'Portfolio showcasing creative work on Irys',
 }
 
