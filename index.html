@@ -925,7 +925,7 @@
         </div>
     </div>
 
-    <script src="profile-config.js" onerror="console.error('Failed to load profile-config.js')"></script>
+    <script src="/profile-config.js" onerror="console.error('Failed to load profile-config.js from /profile-config.js, trying ./profile-config.js'); this.onerror=null; const s=document.createElement('script'); s.src='./profile-config.js'; s.onerror=()=>console.error('Failed to load profile-config.js from both paths'); document.head.appendChild(s);"></script>
     <script>
         // Beautiful Irys Portfolio Display
         class IrysPortfolio {
@@ -976,7 +976,7 @@
                             id: 'demo-app-1',
                             title: 'owly',
                             description: 'redefining the job marketplace',
-                            imageUrl: '/public/arts/irysleader.png',
+                            imageUrl: '/arts/irysleader.png',
                             date: new Date(),
                             transactionId: 'demo-app-1'
                         };
@@ -999,8 +999,8 @@
             getImagePath(filename) {
                 // Remove any existing path prefixes
                 const cleanFilename = filename.replace(/^.*\//, '');
-                // On Vercel, try absolute path first
-                return `/public/arts/${cleanFilename}`;
+                // On Vercel, public folder is served from root, so try /arts/ first
+                return `/arts/${cleanFilename}`;
             }
             
             async tryImagePaths(imagePath) {
@@ -1096,13 +1096,15 @@
 
                     // Try to verify and load images
                     const validImages = [];
-                    // Try multiple path formats for Vercel (absolute paths first)
+                    // Try multiple path formats for Vercel
+                    // On Vercel, public folder is served from root, so try /arts/posts/ first
                     const pathFormats = [
-                        (f) => `/public/arts/posts/${f}`,
                         (f) => `/arts/posts/${f}`,
-                        (f) => `public/arts/posts/${f}`,
+                        (f) => `/public/arts/posts/${f}`,
+                        (f) => `./arts/posts/${f}`,
                         (f) => `./public/arts/posts/${f}`,
-                        (f) => `arts/posts/${f}`
+                        (f) => `arts/posts/${f}`,
+                        (f) => `public/arts/posts/${f}`
                     ];
                     
                     for (const filename of imageFiles) {
@@ -1150,17 +1152,22 @@
                 // Create slideshow items (duplicate for seamless loop)
                 const items = [...this.xPostImages, ...this.xPostImages].map((imageUrl, index) => {
                     // Ensure we try absolute paths first
+                    // On Vercel, public folder is served from root
                     let basePath = imageUrl;
                     if (!basePath.startsWith('/')) {
-                        if (basePath.startsWith('public/')) {
-                            basePath = '/' + basePath;
+                        if (basePath.startsWith('public/arts/posts/')) {
+                            basePath = '/arts/posts/' + basePath.replace('public/arts/posts/', '');
+                        } else if (basePath.startsWith('public/')) {
+                            basePath = '/' + basePath.replace('public/', '');
                         } else {
-                            basePath = '/public/arts/posts/' + basePath.replace(/^.*\//, '');
+                            basePath = '/arts/posts/' + basePath.replace(/^.*\//, '');
                         }
+                    } else if (basePath.startsWith('/public/arts/posts/')) {
+                        basePath = basePath.replace('/public/arts/posts/', '/arts/posts/');
                     }
                     const paths = [
                         basePath,
-                        basePath.replace('/public/arts/posts/', '/arts/posts/'),
+                        basePath.replace('/arts/posts/', '/public/arts/posts/'),
                         imageUrl,
                         `/${imageUrl}`,
                         `./${imageUrl}`,
@@ -1195,16 +1202,19 @@
                 
                 try {
                     // Try multiple possible paths for artworks.json (Vercel compatible)
-                    // On Vercel, absolute paths work best
+                    // On Vercel, public folder is served from root, so /arts/ should work
                     const possiblePaths = [
-                        '/public/arts/artworks.json',
                         '/arts/artworks.json',
-                        'public/arts/artworks.json',
+                        '/public/arts/artworks.json',
+                        './arts/artworks.json',
                         './public/arts/artworks.json',
                         'arts/artworks.json',
-                        '/public/arts/artworks.json?t=' + Date.now(),
-                        '/arts/artworks.json?t=' + Date.now()
+                        'public/arts/artworks.json',
+                        '/arts/artworks.json?t=' + Date.now(),
+                        '/public/arts/artworks.json?t=' + Date.now()
                     ];
+                    
+                    console.log('🔍 Attempting to load artworks.json from multiple paths...');
                     
                     let artworks = [];
                     let loadedPath = null;
@@ -1233,13 +1243,18 @@
                     if (Array.isArray(artworks) && artworks.length > 0) {
                         this.localArts = artworks.map(art => {
                             // Ensure image paths are absolute for Vercel
+                            // On Vercel, public folder is served from root, so use /arts/
                             let imagePath = art.image;
                             if (!imagePath.startsWith('/')) {
-                                if (imagePath.startsWith('public/')) {
-                                    imagePath = '/' + imagePath;
+                                if (imagePath.startsWith('public/arts/')) {
+                                    imagePath = '/arts/' + imagePath.replace('public/arts/', '');
+                                } else if (imagePath.startsWith('public/')) {
+                                    imagePath = '/' + imagePath.replace('public/', '');
                                 } else {
-                                    imagePath = '/public/arts/' + imagePath.replace(/^.*\//, '');
+                                    imagePath = '/arts/' + imagePath.replace(/^.*\//, '');
                                 }
+                            } else if (imagePath.startsWith('/public/arts/')) {
+                                imagePath = imagePath.replace('/public/arts/', '/arts/');
                             }
                             return {
                                 id: art.id,
@@ -1483,18 +1498,23 @@
                         profileImg.onerror = function() {
                             console.error('Profile image failed to load:', imageUrl);
                             console.log('Trying alternative paths...');
-                            // Try alternative paths (Vercel compatible - absolute paths first)
+                            // Try alternative paths (Vercel compatible)
+                            // On Vercel, public folder is served from root
                             let basePath = imageUrl;
                             if (!basePath.startsWith('/')) {
-                                if (basePath.startsWith('public/')) {
-                                    basePath = '/' + basePath;
+                                if (basePath.startsWith('public/arts/')) {
+                                    basePath = '/arts/' + basePath.replace('public/arts/', '');
+                                } else if (basePath.startsWith('public/')) {
+                                    basePath = '/' + basePath.replace('public/', '');
                                 } else {
-                                    basePath = '/public/arts/' + basePath.replace(/^.*\//, '');
+                                    basePath = '/arts/' + basePath.replace(/^.*\//, '');
                                 }
+                            } else if (basePath.startsWith('/public/arts/')) {
+                                basePath = basePath.replace('/public/arts/', '/arts/');
                             }
                             const altPaths = [
                                 basePath,
-                                basePath.replace('/public/arts/', '/arts/'),
+                                basePath.replace('/arts/', '/public/arts/'),
                                 `/${imageUrl}`,
                                 `./${imageUrl}`,
                                 imageUrl.replace('public/arts/', '/arts/'),
@@ -1609,7 +1629,40 @@
                 console.warn('⚠️ PROFILE_CONFIG not found, using defaults');
                 // Try to load profile-config.js manually if it failed
                 const script = document.createElement('script');
-                script.src = 'profile-config.js';
+                script.src = '/profile-config.js';
+                script.onerror = () => {
+                    // Try relative path as fallback
+                    const script2 = document.createElement('script');
+                    script2.src = './profile-config.js';
+                    script2.onload = () => {
+                        if (typeof PROFILE_CONFIG !== 'undefined' && PROFILE_CONFIG) {
+                            console.log('✅ PROFILE_CONFIG loaded from fallback path');
+                            const imageUrl = PROFILE_CONFIG.imageUrl;
+                            let processedImageUrl = null;
+                            if (imageUrl) {
+                                if (imageUrl.startsWith('/')) {
+                                    processedImageUrl = imageUrl;
+                                } else if (imageUrl.startsWith('public/')) {
+                                    processedImageUrl = '/' + imageUrl;
+                                } else if (imageUrl.includes('/')) {
+                                    processedImageUrl = '/' + imageUrl;
+                                } else {
+                                    processedImageUrl = this.getImagePath(imageUrl);
+                                }
+                            }
+                            const profile = {
+                                name: PROFILE_CONFIG.name || 'Your Name',
+                                bio: PROFILE_CONFIG.bio || 'A creative developer building on the Irys network',
+                                imageUrl: processedImageUrl,
+                                xUsername: PROFILE_CONFIG.xUsername || null,
+                                discordUsername: PROFILE_CONFIG.discordUsername || null,
+                                githubUsername: PROFILE_CONFIG.githubUsername || null
+                            };
+                            this.displayProfile(profile);
+                        }
+                    };
+                    document.head.appendChild(script2);
+                };
                 script.onload = () => {
                     if (typeof PROFILE_CONFIG !== 'undefined' && PROFILE_CONFIG) {
                         console.log('✅ PROFILE_CONFIG loaded after retry:', PROFILE_CONFIG);
@@ -1617,12 +1670,18 @@
                     let processedImageUrl = null;
                     if (imageUrl) {
                         // Convert to absolute path for Vercel
+                        // On Vercel, public folder is served from root
                         if (imageUrl.startsWith('/')) {
-                            processedImageUrl = imageUrl;
+                            // If it starts with /public/arts/, change to /arts/
+                            processedImageUrl = imageUrl.startsWith('/public/arts/') 
+                                ? imageUrl.replace('/public/arts/', '/arts/')
+                                : imageUrl;
+                        } else if (imageUrl.startsWith('public/arts/')) {
+                            processedImageUrl = '/arts/' + imageUrl.replace('public/arts/', '');
                         } else if (imageUrl.startsWith('public/')) {
-                            processedImageUrl = '/' + imageUrl;
+                            processedImageUrl = '/' + imageUrl.replace('public/', '');
                         } else if (imageUrl.includes('/')) {
-                            processedImageUrl = '/' + imageUrl;
+                            processedImageUrl = '/arts/' + imageUrl.replace(/^.*\//, '');
                         } else {
                             processedImageUrl = this.getImagePath(imageUrl);
                         }
@@ -1759,17 +1818,22 @@
                 let imageHtml = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:4rem;opacity:0.3">🚀</div>';
                 if (app.imageUrl) {
                     // Ensure we try absolute paths first
+                    // On Vercel, public folder is served from root
                     let basePath = app.imageUrl;
                     if (!basePath.startsWith('/')) {
-                        if (basePath.startsWith('public/')) {
-                            basePath = '/' + basePath;
+                        if (basePath.startsWith('public/arts/')) {
+                            basePath = '/arts/' + basePath.replace('public/arts/', '');
+                        } else if (basePath.startsWith('public/')) {
+                            basePath = '/' + basePath.replace('public/', '');
                         } else {
-                            basePath = '/public/arts/' + basePath.replace(/^.*\//, '');
+                            basePath = '/arts/' + basePath.replace(/^.*\//, '');
                         }
+                    } else if (basePath.startsWith('/public/arts/')) {
+                        basePath = basePath.replace('/public/arts/', '/arts/');
                     }
                     const paths = [
                         basePath,
-                        basePath.replace('/public/arts/', '/arts/'),
+                        basePath.replace('/arts/', '/public/arts/'),
                         app.imageUrl,
                         `/${app.imageUrl}`,
                         `./${app.imageUrl}`,

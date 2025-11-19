@@ -8,6 +8,10 @@
   ],
   "routes": [
     {
+      "src": "/profile-config.js",
+      "dest": "/profile-config.js"
+    },
+    {
       "src": "/public/(.*)",
       "dest": "/public/$1"
     },
