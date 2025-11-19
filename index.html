@@ -925,7 +925,7 @@
         </div>
     </div>
 
-    <script src="profile-config.js"></script>
+    <script src="profile-config.js" onerror="console.error('Failed to load profile-config.js')"></script>
     <script>
         // Beautiful Irys Portfolio Display
         class IrysPortfolio {
@@ -997,16 +997,86 @@
             }
             
             getImagePath(filename) {
-                // Try multiple path formats for Vercel compatibility
-                const basePaths = [
-                    `public/arts/${filename}`,
-                    `/public/arts/${filename}`,
-                    `./public/arts/${filename}`,
-                    `/arts/${filename}`,
-                    `arts/${filename}`
-                ];
+                // Remove any existing path prefixes
+                const cleanFilename = filename.replace(/^.*\//, '');
                 // Return the first path format (will try alternatives in image loading)
-                return basePaths[0];
+                return `public/arts/${cleanFilename}`;
+            }
+            
+            async tryImagePaths(imagePath) {
+                // Try multiple path formats for Vercel compatibility
+                const pathsToTry = [
+                    imagePath,
+                    `/${imagePath}`,
+                    `./${imagePath}`,
+                    imagePath.replace('public/arts/', '/arts/'),
+                    imagePath.replace('public/', ''),
+                    imagePath.replace(/^public\//, '/')
+                ];
+                
+                // Try each path
+                for (const path of pathsToTry) {
+                    try {
+                        const response = await fetch(path, { method: 'HEAD' });
+                        if (response.ok) {
+                            console.log(`✅ Image found at: ${path}`);
+                            return path;
+                        }
+                    } catch (e) {
+                        continue;
+                    }
+                }
+                
+                // Return original path if none work (browser will try to load it)
+                console.warn(`⚠️ Could not verify image path: ${imagePath}, using original`);
+                return imagePath;
+            }
+            
+            createImageWithFallback(imageUrl, alt, className = '') {
+                // Create an img element that tries multiple paths
+                const img = document.createElement('img');
+                img.alt = alt || '';
+                if (className) img.className = className;
+                img.loading = 'lazy';
+                
+                // Try to find the correct path
+                this.tryImagePaths(imageUrl).then(correctPath => {
+                    img.src = correctPath;
+                }).catch(() => {
+                    img.src = imageUrl;
+                });
+                
+                // Add error handler that tries alternative paths
+                img.onerror = function() {
+                    const altPaths = [
+                        `/${imageUrl}`,
+                        `./${imageUrl}`,
+                        imageUrl.replace('public/arts/', '/arts/'),
+                        imageUrl.replace('public/', ''),
+                        imageUrl.replace(/^public\//, '/')
+                    ];
+                    
+                    let tried = 0;
+                    const tryNext = () => {
+                        if (tried < altPaths.length) {
+                            this.src = altPaths[tried];
+                            tried++;
+                        } else {
+                            // All paths failed, show placeholder
+                            this.style.display = 'none';
+                            if (this.parentElement) {
+                                this.parentElement.style.background = 'linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(59, 130, 246, 0.05))';
+                                this.parentElement.style.display = 'flex';
+                                this.parentElement.style.alignItems = 'center';
+                                this.parentElement.style.justifyContent = 'center';
+                            }
+                        }
+                    };
+                    this.onerror = tryNext;
+                    tryNext();
+                };
+                
+                return img;
             }
 
             async loadXPostImages() {
@@ -1079,9 +1149,30 @@
 
                 // Create slideshow items (duplicate for seamless loop)
                 const items = [...this.xPostImages, ...this.xPostImages].map((imageUrl, index) => {
+                    const paths = [
+                        imageUrl,
+                        `/${imageUrl}`,
+                        `./${imageUrl}`,
+                        imageUrl.replace('public/arts/posts/', '/arts/posts/'),
+                        imageUrl.replace('public/', ''),
+                        imageUrl.replace(/^public\//, '/')
+                    ];
+                    const pathStr = paths.map(p => `'${p}'`).join(',');
                     return `
                         <div class="slideshow-item">
-                            <img src="${imageUrl}" alt="X Post ${index + 1}" loading="lazy">
+                            <img src="${imageUrl}" alt="X Post ${index + 1}" loading="lazy"
+                                onerror="
+                                    const paths = [${pathStr}];
+                                    let tried = 0;
+                                    const tryNext = () => {
+                                        if (tried < paths.length) {
+                                            this.src = paths[tried];
+                                            tried++;
+                                        }
+                                    };
+                                    this.onerror = tryNext;
+                                    tryNext();
+                                ">
                         </div>
                     `;
                 }).join('');
@@ -1099,22 +1190,34 @@
                         './public/arts/artworks.json',
                         '/public/arts/artworks.json',
                         '/arts/artworks.json',
-                        'arts/artworks.json'
+                        'arts/artworks.json',
+                        'public/arts/artworks.json?t=' + Date.now(),
+                        './public/arts/artworks.json?t=' + Date.now(),
+                        '/public/arts/artworks.json?t=' + Date.now()
                     ];
                     
                     let artworks = [];
+                    let loadedPath = null;
                     for (const path of possiblePaths) {
                         try {
-                            const jsonResponse = await fetch(path + '?t=' + Date.now());
+                            const jsonResponse = await fetch(path);
                             if (jsonResponse.ok) {
-                                artworks = await jsonResponse.json();
-                                console.log(`✅ Loaded artworks from ${path}:`, artworks.length);
-                                break;
+                                const data = await jsonResponse.json();
+                                if (Array.isArray(data) && data.length > 0) {
+                                    artworks = data;
+                                    loadedPath = path;
+                                    console.log(`✅ Loaded artworks from ${path}:`, artworks.length);
+                                    break;
+                                }
                             }
                         } catch (e) {
-                            // Try next path
+                            console.log(`Failed to load from ${path}:`, e.message);
                             continue;
                         }
+                    }
+                    
+                    if (!loadedPath) {
+                        console.warn('⚠️ Could not load artworks.json from any path');
                     }
                     
                     if (Array.isArray(artworks) && artworks.length > 0) {
@@ -1361,12 +1464,12 @@
                             console.log('Trying alternative paths...');
                             // Try alternative paths (Vercel compatible)
                             const altPaths = [
-                                './' + imageUrl,
-                                '/' + imageUrl,
+                                `/${imageUrl}`,
+                                `./${imageUrl}`,
+                                imageUrl.replace('public/arts/', '/arts/'),
                                 imageUrl.replace('public/', ''),
-                                imageUrl.replace('public/', '/'),
-                                '/' + imageUrl.replace('public/', ''),
-                                imageUrl.replace(/^public\//, '/arts/')
+                                imageUrl.replace(/^public\//, '/'),
+                                imageUrl.replace(/^public\/arts\//, '/arts/')
                             ];
                             
                             let tried = 0;
@@ -1386,6 +1489,8 @@
                                         placeholder.style.display = 'flex';
                                         placeholder.style.alignItems = 'center';
                                         placeholder.style.justifyContent = 'center';
+                                        placeholder.style.fontSize = '4rem';
+                                        placeholder.style.opacity = '0.5';
                                         img.parentElement.appendChild(placeholder);
                                     }
                                 }
@@ -1617,13 +1722,41 @@
                     return;
                 }
 
+                let imageHtml = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:4rem;opacity:0.3">🚀</div>';
+                if (app.imageUrl) {
+                    const paths = [
+                        app.imageUrl,
+                        `/${app.imageUrl}`,
+                        `./${app.imageUrl}`,
+                        app.imageUrl.replace('public/arts/', '/arts/'),
+                        app.imageUrl.replace('public/', ''),
+                        app.imageUrl.replace(/^public\//, '/')
+                    ];
+                    const pathStr = paths.map(p => `'${p}'`).join(',');
+                    imageHtml = `<img src="${app.imageUrl}" alt="${app.title.replace(/'/g, "\\'")}" 
+                        onerror="
+                            const paths = [${pathStr}];
+                            let tried = 0;
+                            const tryNext = () => {
+                                if (tried < paths.length) {
+                                    this.src = paths[tried];
+                                    tried++;
+                                } else {
+                                    this.style.display='none';
+                                    if (this.parentElement) {
+                                        this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;font-size:4rem;opacity:0.3\\'>🚀</div>';
+                                    }
+                                }
+                            };
+                            this.onerror = tryNext;
+                            tryNext();
+                        " loading="lazy">`;
+                }
+                
                 showcase.innerHTML = `
                     <div class="app-card fade-in">
                         <div class="app-image">
-                            ${app.imageUrl ? 
-                                `<img src="${app.imageUrl}" alt="${app.title}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;font-size:4rem;opacity:0.3\\'>🚀</div>';">` :
-                                '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:4rem;opacity:0.3">🚀</div>'
-                            }
+                            ${imageHtml}
                         </div>
                         <div class="app-info">
                             <h3>${app.title}</h3>
@@ -1661,14 +1794,47 @@
                         year: 'numeric',
                         month: 'short'
                     });
+                    
+                    // Create image with multiple path fallbacks
+                    let imageHtml = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:3rem;opacity:0.3">🎨</div>';
+                    if (art.imageUrl) {
+                        const paths = [
+                            art.imageUrl,
+                            `/${art.imageUrl}`,
+                            `./${art.imageUrl}`,
+                            art.imageUrl.replace('public/arts/', '/arts/'),
+                            art.imageUrl.replace('public/', ''),
+                            art.imageUrl.replace(/^public\//, '/')
+                        ];
+                        const pathStr = paths.map(p => `'${p}'`).join(',');
+                        imageHtml = `<img src="${art.imageUrl}" alt="${art.title.replace(/'/g, "\\'")}" 
+                            onerror="
+                                const paths = [${pathStr}];
+                                let tried = 0;
+                                const tryNext = () => {
+                                    if (tried < paths.length) {
+                                        this.src = paths[tried];
+                                        tried++;
+                                    } else {
+                                        this.style.display='none';
+                                        if (this.parentElement) {
+                                            this.parentElement.style.background='linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(59, 130, 246, 0.05))';
+                                            this.parentElement.style.display='flex';
+                                            this.parentElement.style.alignItems='center';
+                                            this.parentElement.style.justifyContent='center';
+                                            this.parentElement.innerHTML='<div style=\\'font-size:3rem;opacity:0.3\\'>🎨</div>';
+                                        }
+                                    }
+                                };
+                                this.onerror = tryNext;
+                                tryNext();
+                            " loading="lazy">`;
+                    }
 
                     return `
-                        <div class="art-card fade-in" onclick="window.portfolio.openArtModal('${art.id}')">
+                        <div class="art-card fade-in" onclick="window.portfolio.openArtModal('${art.id.replace(/'/g, "\\'")}')">
                             <div class="art-image">
-                                ${art.imageUrl ? 
-                                    `<img src="${art.imageUrl}" alt="${art.title}" onerror="this.parentElement.style.background='linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(59, 130, 246, 0.05))'; this.style.display='none';">` :
-                                    '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:3rem;opacity:0.3">🎨</div>'
-                                }
+                                ${imageHtml}
                                 <div class="art-overlay">
                                     <p>Click to view full size</p>
                                 </div>
