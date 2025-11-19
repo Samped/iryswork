@@ -15,4 +15,3 @@ const PROFILE_CONFIG = {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = PROFILE_CONFIG;
 }
- e
