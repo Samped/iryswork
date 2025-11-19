@@ -1,0 +1,12 @@
+{
+  "name": "irys-portfolio",
+  "version": "1.0.0",
+  "description": "Portfolio showcasing creative work on Irys",
+  "scripts": {
+    "build": "echo 'No build step required'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT"
+}
+
