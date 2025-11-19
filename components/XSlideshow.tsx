@@ -14,12 +14,15 @@ const xPostImages = [
 ]
 
 export default function XSlideshow() {
+  // Create multiple copies to ensure smooth infinite loop in both directions
+  const allImages = [...xPostImages, ...xPostImages, ...xPostImages, ...xPostImages]
+  
   return (
     <section className={styles.slideshowSection}>
       <h2>Latest from X</h2>
       <div className={styles.slideshowContainer}>
         <div className={styles.slideshowTrack}>
-          {[...xPostImages, ...xPostImages].map((img, index) => (
+          {allImages.map((img, index) => (
             <div key={`${img}-${index}`} className={styles.slideshowItem}>
               <Image
                 src={`/arts/posts/${img}`}

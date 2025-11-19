@@ -471,7 +471,7 @@
 .slideshowTrack {
   display: flex;
   gap: 40px;
-  animation: slideBackAndForth 50s linear infinite;
+  animation: slideBackAndForth 60s linear infinite;
   will-change: transform;
 }
 
@@ -508,7 +508,7 @@
     transform: translateX(0);
   }
   50% {
-    transform: translateX(-50%);
+    transform: translateX(calc(-25% - 10px));
   }
   100% {
     transform: translateX(0);
