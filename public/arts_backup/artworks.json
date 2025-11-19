@@ -1,0 +1,142 @@
+[
+    {
+        "id": "art-1",
+        "title": "Irysking",
+        "description": "A beautiful piece of artwork: irysking",
+        "image": "irysking.png",
+        "date": "2025-09-22"
+    },
+    {
+        "id": "art-2",
+        "title": "Iryscap",
+        "description": "A beautiful piece of artwork: iryscap",
+        "image": "iryscap.png",
+        "date": "2025-09-23"
+    },
+    {
+        "id": "art-3",
+        "title": "Irysnews",
+        "description": "A beautiful piece of artwork: irysnews",
+        "image": "irysnews.png",
+        "date": "2025-09-24"
+    },
+    {
+        "id": "art-4",
+        "title": "Iryshouse",
+        "description": "A beautiful piece of artwork: iryshouse",
+        "image": "iryshouse.png",
+        "date": "2025-11-18"
+    },
+    {
+        "id": "art-5",
+        "title": "Irysiscoming",
+        "description": "A beautiful piece of artwork: irysiscoming",
+        "image": "irysiscoming.png",
+        "date": "2025-11-07"
+    },
+    {
+        "id": "art-6",
+        "title": "Irystech",
+        "description": "A beautiful piece of artwork: irystech",
+        "image": "irystech.png",
+        "date": "2025-10-12"
+    },
+    {
+        "id": "art-7",
+        "title": "Irysnanny1",
+        "description": "A beautiful piece of artwork: irysnanny1",
+        "image": "irysnanny1.png",
+        "date": "2025-10-11"
+    },
+    {
+        "id": "art-8",
+        "title": "Irysnanny",
+        "description": "A beautiful piece of artwork: irysnanny",
+        "image": "irysnanny.png",
+        "date": "2025-10-11"
+    },
+    {
+        "id": "art-9",
+        "title": "Irysfall",
+        "description": "A beautiful piece of artwork: irysfall",
+        "image": "irysfall.png",
+        "date": "2025-10-09"
+    },
+    {
+        "id": "art-10",
+        "title": "Irysseating",
+        "description": "A beautiful piece of artwork: irysseating",
+        "image": "irysseating.png",
+        "date": "2025-10-04"
+    },
+    {
+        "id": "art-11",
+        "title": "Irysontop",
+        "description": "A beautiful piece of artwork: irysontop",
+        "image": "irysontop.png",
+        "date": "2025-10-03"
+    },
+    {
+        "id": "art-12",
+        "title": "Irysjet",
+        "description": "A beautiful piece of artwork: irysjet",
+        "image": "irysjet.png",
+        "date": "2025-10-03"
+    },
+    {
+        "id": "art-13",
+        "title": "Iryslab",
+        "description": "A beautiful piece of artwork: iryslab",
+        "image": "iryslab.svg",
+        "date": "2025-10-03"
+    },
+    {
+        "id": "art-14",
+        "title": "Irysdig",
+        "description": "A beautiful piece of artwork: irysdig",
+        "image": "irysdig.svg",
+        "date": "2025-10-02"
+    },
+    {
+        "id": "art-15",
+        "title": "Irysmachine",
+        "description": "A beautiful piece of artwork: irysmachine",
+        "image": "irysmachine.png",
+        "date": "2025-10-02"
+    },
+    {
+        "id": "art-16",
+        "title": "Irysoffice",
+        "description": "A beautiful piece of artwork: irysoffice",
+        "image": "irysoffice.png",
+        "date": "2025-10-01"
+    },
+    {
+        "id": "art-17",
+        "title": "Irysshadow",
+        "description": "A beautiful piece of artwork: irysshadow",
+        "image": "irysshadow.png",
+        "date": "2025-10-01"
+    },
+    {
+        "id": "art-18",
+        "title": "Irysseat",
+        "description": "A beautiful piece of artwork: irysseat",
+        "image": "irysseat.png",
+        "date": "2025-09-29"
+    },
+    {
+        "id": "art-19",
+        "title": "Irys",
+        "description": "A beautiful piece of artwork: irys",
+        "image": "irys.svg",
+        "date": "2025-09-25"
+    },
+    {
+        "id": "art-20",
+        "title": "Iryssky",
+        "description": "A beautiful piece of artwork: iryssky",
+        "image": "iryssky.png",
+        "date": "2025-09-25"
+    }
+]

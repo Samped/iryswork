@@ -1,24 +1,2 @@
-{
-  "version": 2,
-  "builds": [
-    {
-      "src": "**",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/arts/(.*)",
-      "dest": "/public/arts/$1"
-    },
-    {
-      "src": "/(.*\\.(js|json|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|PNG|JPG|JPEG))",
-      "dest": "/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
-  ]
-}
+{}
 
