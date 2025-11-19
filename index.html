@@ -972,14 +972,14 @@
                 this.loadXPostImages();
                 
                 // Always show demo app and games, regardless of local arts
-                const demoApp = {
-                    id: 'demo-app-1',
-                    title: 'owly',
-                    description: 'redefining the job marketplace',
-                    imageUrl: this.getImagePath('irysleader.png'),
-                    date: new Date(),
-                    transactionId: 'demo-app-1'
-                };
+                        const demoApp = {
+                            id: 'demo-app-1',
+                            title: 'owly',
+                            description: 'redefining the job marketplace',
+                            imageUrl: '/public/arts/irysleader.png',
+                            date: new Date(),
+                            transactionId: 'demo-app-1'
+                        };
                 this.displayApp(demoApp);
                 
                 // Display games
@@ -999,8 +999,8 @@
             getImagePath(filename) {
                 // Remove any existing path prefixes
                 const cleanFilename = filename.replace(/^.*\//, '');
-                // Return the first path format (will try alternatives in image loading)
-                return `public/arts/${cleanFilename}`;
+                // On Vercel, try absolute path first
+                return `/public/arts/${cleanFilename}`;
             }
             
             async tryImagePaths(imagePath) {
@@ -1096,12 +1096,12 @@
 
                     // Try to verify and load images
                     const validImages = [];
-                    // Try multiple path formats for Vercel
+                    // Try multiple path formats for Vercel (absolute paths first)
                     const pathFormats = [
-                        (f) => `public/arts/posts/${f}`,
                         (f) => `/public/arts/posts/${f}`,
-                        (f) => `./public/arts/posts/${f}`,
                         (f) => `/arts/posts/${f}`,
+                        (f) => `public/arts/posts/${f}`,
+                        (f) => `./public/arts/posts/${f}`,
                         (f) => `arts/posts/${f}`
                     ];
                     
@@ -1149,18 +1149,28 @@
 
                 // Create slideshow items (duplicate for seamless loop)
                 const items = [...this.xPostImages, ...this.xPostImages].map((imageUrl, index) => {
+                    // Ensure we try absolute paths first
+                    let basePath = imageUrl;
+                    if (!basePath.startsWith('/')) {
+                        if (basePath.startsWith('public/')) {
+                            basePath = '/' + basePath;
+                        } else {
+                            basePath = '/public/arts/posts/' + basePath.replace(/^.*\//, '');
+                        }
+                    }
                     const paths = [
+                        basePath,
+                        basePath.replace('/public/arts/posts/', '/arts/posts/'),
                         imageUrl,
                         `/${imageUrl}`,
                         `./${imageUrl}`,
                         imageUrl.replace('public/arts/posts/', '/arts/posts/'),
-                        imageUrl.replace('public/', ''),
-                        imageUrl.replace(/^public\//, '/')
+                        imageUrl.replace('public/', '')
                     ];
                     const pathStr = paths.map(p => `'${p}'`).join(',');
                     return `
                         <div class="slideshow-item">
-                            <img src="${imageUrl}" alt="X Post ${index + 1}" loading="lazy"
+                            <img src="${basePath}" alt="X Post ${index + 1}" loading="lazy"
                                 onerror="
                                     const paths = [${pathStr}];
                                     let tried = 0;
@@ -1185,15 +1195,15 @@
                 
                 try {
                     // Try multiple possible paths for artworks.json (Vercel compatible)
+                    // On Vercel, absolute paths work best
                     const possiblePaths = [
-                        'public/arts/artworks.json',
-                        './public/arts/artworks.json',
                         '/public/arts/artworks.json',
                         '/arts/artworks.json',
+                        'public/arts/artworks.json',
+                        './public/arts/artworks.json',
                         'arts/artworks.json',
-                        'public/arts/artworks.json?t=' + Date.now(),
-                        './public/arts/artworks.json?t=' + Date.now(),
-                        '/public/arts/artworks.json?t=' + Date.now()
+                        '/public/arts/artworks.json?t=' + Date.now(),
+                        '/arts/artworks.json?t=' + Date.now()
                     ];
                     
                     let artworks = [];
@@ -1221,15 +1231,26 @@
                     }
                     
                     if (Array.isArray(artworks) && artworks.length > 0) {
-                        this.localArts = artworks.map(art => ({
-                            id: art.id,
-                            title: art.title,
-                            description: art.description || `A beautiful piece of artwork.`,
-                            imageUrl: this.getImagePath(art.image),
-                            date: new Date(art.date || Date.now()),
-                            transactionId: art.id,
-                            isLocal: true
-                        }));
+                        this.localArts = artworks.map(art => {
+                            // Ensure image paths are absolute for Vercel
+                            let imagePath = art.image;
+                            if (!imagePath.startsWith('/')) {
+                                if (imagePath.startsWith('public/')) {
+                                    imagePath = '/' + imagePath;
+                                } else {
+                                    imagePath = '/public/arts/' + imagePath.replace(/^.*\//, '');
+                                }
+                            }
+                            return {
+                                id: art.id,
+                                title: art.title,
+                                description: art.description || `A beautiful piece of artwork.`,
+                                imageUrl: imagePath,
+                                date: new Date(art.date || Date.now()),
+                                transactionId: art.id,
+                                isLocal: true
+                            };
+                        });
                         console.log(`✅ Processed ${this.localArts.length} artworks`);
                     }
                 } catch (error) {
@@ -1462,14 +1483,23 @@
                         profileImg.onerror = function() {
                             console.error('Profile image failed to load:', imageUrl);
                             console.log('Trying alternative paths...');
-                            // Try alternative paths (Vercel compatible)
+                            // Try alternative paths (Vercel compatible - absolute paths first)
+                            let basePath = imageUrl;
+                            if (!basePath.startsWith('/')) {
+                                if (basePath.startsWith('public/')) {
+                                    basePath = '/' + basePath;
+                                } else {
+                                    basePath = '/public/arts/' + basePath.replace(/^.*\//, '');
+                                }
+                            }
                             const altPaths = [
+                                basePath,
+                                basePath.replace('/public/arts/', '/arts/'),
                                 `/${imageUrl}`,
                                 `./${imageUrl}`,
                                 imageUrl.replace('public/arts/', '/arts/'),
                                 imageUrl.replace('public/', ''),
-                                imageUrl.replace(/^public\//, '/'),
-                                imageUrl.replace(/^public\/arts\//, '/arts/')
+                                imageUrl.replace(/^public\//, '/')
                             ];
                             
                             let tried = 0;
@@ -1583,21 +1613,25 @@
                 script.onload = () => {
                     if (typeof PROFILE_CONFIG !== 'undefined' && PROFILE_CONFIG) {
                         console.log('✅ PROFILE_CONFIG loaded after retry:', PROFILE_CONFIG);
-                        const imageUrl = PROFILE_CONFIG.imageUrl;
-                        let processedImageUrl = null;
-                        if (imageUrl) {
-                            // If it's already a full path like "public/arts/pfp.jpg", use it directly
-                            // Otherwise, treat it as a filename and use getImagePath
-                            if (imageUrl.includes('/')) {
-                                processedImageUrl = imageUrl;
-                            } else {
-                                processedImageUrl = this.getImagePath(imageUrl);
-                            }
+                    const imageUrl = PROFILE_CONFIG.imageUrl;
+                    let processedImageUrl = null;
+                    if (imageUrl) {
+                        // Convert to absolute path for Vercel
+                        if (imageUrl.startsWith('/')) {
+                            processedImageUrl = imageUrl;
+                        } else if (imageUrl.startsWith('public/')) {
+                            processedImageUrl = '/' + imageUrl;
+                        } else if (imageUrl.includes('/')) {
+                            processedImageUrl = '/' + imageUrl;
+                        } else {
+                            processedImageUrl = this.getImagePath(imageUrl);
                         }
-                        const profile = {
-                            name: PROFILE_CONFIG.name || 'Your Name',
-                            bio: PROFILE_CONFIG.bio || 'A creative developer building on the Irys network',
-                            imageUrl: processedImageUrl,
+                        console.log('Profile image path processed:', processedImageUrl);
+                    }
+                    const profile = {
+                        name: PROFILE_CONFIG.name || 'Your Name',
+                        bio: PROFILE_CONFIG.bio || 'A creative developer building on the Irys network',
+                        imageUrl: processedImageUrl,
                             xUsername: PROFILE_CONFIG.xUsername || null,
                             discordUsername: PROFILE_CONFIG.discordUsername || null,
                             githubUsername: PROFILE_CONFIG.githubUsername || null
@@ -1724,13 +1758,23 @@
 
                 let imageHtml = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:4rem;opacity:0.3">🚀</div>';
                 if (app.imageUrl) {
+                    // Ensure we try absolute paths first
+                    let basePath = app.imageUrl;
+                    if (!basePath.startsWith('/')) {
+                        if (basePath.startsWith('public/')) {
+                            basePath = '/' + basePath;
+                        } else {
+                            basePath = '/public/arts/' + basePath.replace(/^.*\//, '');
+                        }
+                    }
                     const paths = [
+                        basePath,
+                        basePath.replace('/public/arts/', '/arts/'),
                         app.imageUrl,
                         `/${app.imageUrl}`,
                         `./${app.imageUrl}`,
                         app.imageUrl.replace('public/arts/', '/arts/'),
-                        app.imageUrl.replace('public/', ''),
-                        app.imageUrl.replace(/^public\//, '/')
+                        app.imageUrl.replace('public/', '')
                     ];
                     const pathStr = paths.map(p => `'${p}'`).join(',');
                     imageHtml = `<img src="${app.imageUrl}" alt="${app.title.replace(/'/g, "\\'")}" 
