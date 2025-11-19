@@ -43,3 +43,4 @@ Place your artwork images in this folder and update `artworks.json` to display t
 
 Your artworks will automatically appear in the Arts & Designs section of your portfolio!
 
+

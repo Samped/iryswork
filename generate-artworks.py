@@ -51,3 +51,4 @@ def generate_artworks_json():
 if __name__ == '__main__':
     generate_artworks_json()
 
+
