@@ -971,30 +971,42 @@
                 // Load X post images for slideshow
                 this.loadXPostImages();
                 
+                // Always show demo app and games, regardless of local arts
+                const demoApp = {
+                    id: 'demo-app-1',
+                    title: 'owly',
+                    description: 'redefining the job marketplace',
+                    imageUrl: this.getImagePath('irysleader.png'),
+                    date: new Date(),
+                    transactionId: 'demo-app-1'
+                };
+                this.displayApp(demoApp);
+                
+                // Display games
+                if (this.localGames.length > 0) {
+                    this.displayGames(this.localGames);
+                }
+                
+                // Load profile
                 if (typeof PROFILE_CONFIG !== 'undefined' && PROFILE_CONFIG.walletAddress) {
                     this.walletAddress = PROFILE_CONFIG.walletAddress;
                     this.loadPortfolio();
                 } else {
                     this.loadDemoProfile();
-                    // Only show demo data if no local arts were found
-                    if (this.localArts.length === 0) {
-                        this.showDemoData();
-                    } else {
-                        // Show demo app and games, but keep local arts
-                        const demoApp = {
-                            id: 'demo-app-1',
-                            title: 'owly',
-                            description: 'redefining the job marketplace',
-                            imageUrl: 'public/arts/irysleader.png',
-                            date: new Date(),
-                            transactionId: 'demo-app-1'
-                        };
-                        this.displayApp(demoApp);
-                        // Merge local games with demo games
-                        const allGames = [...this.localGames];
-                        this.displayGames(allGames);
-                    }
                 }
+            }
+            
+            getImagePath(filename) {
+                // Try multiple path formats for Vercel compatibility
+                const basePaths = [
+                    `public/arts/${filename}`,
+                    `/public/arts/${filename}`,
+                    `./public/arts/${filename}`,
+                    `/arts/${filename}`,
+                    `arts/${filename}`
+                ];
+                // Return the first path format (will try alternatives in image loading)
+                return basePaths[0];
             }
 
             async loadXPostImages() {
@@ -1014,22 +1026,41 @@
 
                     // Try to verify and load images
                     const validImages = [];
+                    // Try multiple path formats for Vercel
+                    const pathFormats = [
+                        (f) => `public/arts/posts/${f}`,
+                        (f) => `/public/arts/posts/${f}`,
+                        (f) => `./public/arts/posts/${f}`,
+                        (f) => `/arts/posts/${f}`,
+                        (f) => `arts/posts/${f}`
+                    ];
+                    
                     for (const filename of imageFiles) {
-                        const imagePath = `public/arts/posts/${filename}`;
+                        // Try first path format
+                        const imagePath = pathFormats[0](filename);
                         // Try to verify the image exists by attempting to load it
-                        try {
-                            const response = await fetch(imagePath, { method: 'HEAD' });
-                            if (response.ok) {
-                                validImages.push(imagePath);
+                        let found = false;
+                        for (const format of pathFormats) {
+                            try {
+                                const testPath = format(filename);
+                                const response = await fetch(testPath, { method: 'HEAD' });
+                                if (response.ok) {
+                                    validImages.push(testPath);
+                                    found = true;
+                                    break;
+                                }
+                            } catch (e) {
+                                continue;
                             }
-                        } catch (e) {
-                            // Image might still exist, add it anyway
+                        }
+                        if (!found) {
+                            // Add with first format anyway
                             validImages.push(imagePath);
                         }
                     }
 
-                    // If no images verified, use all listed images
-                    this.xPostImages = validImages.length > 0 ? validImages : imageFiles.map(f => `public/arts/posts/${f}`);
+                    // If no images verified, use all listed images with first format
+                    this.xPostImages = validImages.length > 0 ? validImages : imageFiles.map(f => pathFormats[0](f));
                     
                     console.log(`✅ Loaded ${this.xPostImages.length} X post images from public/arts/posts/`);
                     
@@ -1062,11 +1093,13 @@
                 this.localArts = [];
                 
                 try {
-                    // Try multiple possible paths for artworks.json
+                    // Try multiple possible paths for artworks.json (Vercel compatible)
                     const possiblePaths = [
                         'public/arts/artworks.json',
                         './public/arts/artworks.json',
-                        '/public/arts/artworks.json'
+                        '/public/arts/artworks.json',
+                        '/arts/artworks.json',
+                        'arts/artworks.json'
                     ];
                     
                     let artworks = [];
@@ -1089,7 +1122,7 @@
                             id: art.id,
                             title: art.title,
                             description: art.description || `A beautiful piece of artwork.`,
-                            imageUrl: `public/arts/${art.image}`,
+                            imageUrl: this.getImagePath(art.image),
                             date: new Date(art.date || Date.now()),
                             transactionId: art.id,
                             isLocal: true
@@ -1126,9 +1159,9 @@
                     if (apiResponse.ok) {
                         const apiImages = await apiResponse.json();
                         apiImages.forEach(img => {
-                            const imagePath = img.path || `public/arts/${img.filename}`;
+                            const filename = img.filename || img.path?.split('/').pop();
+                            const imagePath = img.path || this.getImagePath(filename);
                             if (!checkedImages.has(imagePath) && !this.localArts.some(a => a.imageUrl === imagePath)) {
-                                const filename = img.filename || imagePath.split('/').pop();
                                 const title = img.name || filename.replace(/[._-]/g, ' ').replace(/\.[^/.]+$/, '').replace(/\b\w/g, l => l.toUpperCase());
                                 
                                 discoveredImages.push({
@@ -1156,7 +1189,7 @@
                     
                     // Check each pattern
                     const checkPromises = patterns.slice(0, 100).map(async (name) => {
-                        const imagePath = `public/arts/${name}`;
+                        const imagePath = this.getImagePath(name);
                         if (checkedImages.has(imagePath)) return null;
                         
                         try {
@@ -1326,11 +1359,14 @@
                         profileImg.onerror = function() {
                             console.error('Profile image failed to load:', imageUrl);
                             console.log('Trying alternative paths...');
-                            // Try alternative paths
+                            // Try alternative paths (Vercel compatible)
                             const altPaths = [
                                 './' + imageUrl,
                                 '/' + imageUrl,
-                                imageUrl.replace('public/', '')
+                                imageUrl.replace('public/', ''),
+                                imageUrl.replace('public/', '/'),
+                                '/' + imageUrl.replace('public/', ''),
+                                imageUrl.replace(/^public\//, '/arts/')
                             ];
                             
                             let tried = 0;
@@ -1409,11 +1445,24 @@
             }
 
             loadDemoProfile() {
-                if (typeof PROFILE_CONFIG !== 'undefined') {
+                // Check if PROFILE_CONFIG is loaded
+                if (typeof PROFILE_CONFIG !== 'undefined' && PROFILE_CONFIG) {
+                    console.log('✅ PROFILE_CONFIG loaded:', PROFILE_CONFIG);
+                    const imageUrl = PROFILE_CONFIG.imageUrl;
+                    let processedImageUrl = null;
+                    if (imageUrl) {
+                        // If it's already a full path like "public/arts/pfp.jpg", use it directly
+                        // Otherwise, treat it as a filename and use getImagePath
+                        if (imageUrl.includes('/')) {
+                            processedImageUrl = imageUrl;
+                        } else {
+                            processedImageUrl = this.getImagePath(imageUrl);
+                        }
+                    }
                     const profile = {
                         name: PROFILE_CONFIG.name || 'Your Name',
                         bio: PROFILE_CONFIG.bio || 'A creative developer building on the Irys network',
-                        imageUrl: PROFILE_CONFIG.imageUrl || null,
+                        imageUrl: processedImageUrl,
                         xUsername: PROFILE_CONFIG.xUsername || null,
                         discordUsername: PROFILE_CONFIG.discordUsername || null,
                         githubUsername: PROFILE_CONFIG.githubUsername || null
@@ -1422,6 +1471,41 @@
                     return;
                 }
 
+                console.warn('⚠️ PROFILE_CONFIG not found, using defaults');
+                // Try to load profile-config.js manually if it failed
+                const script = document.createElement('script');
+                script.src = 'profile-config.js';
+                script.onload = () => {
+                    if (typeof PROFILE_CONFIG !== 'undefined' && PROFILE_CONFIG) {
+                        console.log('✅ PROFILE_CONFIG loaded after retry:', PROFILE_CONFIG);
+                        const imageUrl = PROFILE_CONFIG.imageUrl;
+                        let processedImageUrl = null;
+                        if (imageUrl) {
+                            // If it's already a full path like "public/arts/pfp.jpg", use it directly
+                            // Otherwise, treat it as a filename and use getImagePath
+                            if (imageUrl.includes('/')) {
+                                processedImageUrl = imageUrl;
+                            } else {
+                                processedImageUrl = this.getImagePath(imageUrl);
+                            }
+                        }
+                        const profile = {
+                            name: PROFILE_CONFIG.name || 'Your Name',
+                            bio: PROFILE_CONFIG.bio || 'A creative developer building on the Irys network',
+                            imageUrl: processedImageUrl,
+                            xUsername: PROFILE_CONFIG.xUsername || null,
+                            discordUsername: PROFILE_CONFIG.discordUsername || null,
+                            githubUsername: PROFILE_CONFIG.githubUsername || null
+                        };
+                        this.displayProfile(profile);
+                    }
+                };
+                script.onerror = () => {
+                    console.error('Failed to load profile-config.js');
+                };
+                document.head.appendChild(script);
+                
+                // Show default while loading
                 const profile = {
                     name: 'Your Name',
                     bio: 'Edit the PROFILE_CONFIG in profile-config.js to customize your portfolio',
